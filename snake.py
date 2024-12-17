@@ -11,7 +11,6 @@ from pygame.locals import *
 # Global variables are used in this program.
 # The justification is that all of these global variables are actually CONSTANTS
 # so thier values should never change (preventing that difficult to trace bug)
-FPS = 10
 WINDOW_WIDTH = 600
 WINDOW_HEIGHT = 400
 CELL_SIZE = 20
@@ -88,9 +87,11 @@ def terminate():
     sys.exit()
 
 
-def drawApple(appleLocation):
+def drawApple(appleLocation, rot):
+    rot_red = (255, 0, 0+(rot*10))
+    # print (rot, rot_red)
     apple = pygame.Rect(appleLocation[X]*CELL_SIZE, appleLocation[Y]*CELL_SIZE, CELL_SIZE, CELL_SIZE)
-    pygame.draw.rect(DISPLAY_SURF, RED, apple)
+    pygame.draw.rect(DISPLAY_SURF, rot_red, apple)
 
 
 def drawSnake(snakeCoords):
@@ -143,19 +144,19 @@ def getRandomLocation(snakeCoords):
     return (x, y)
 
       
-def snakeSquirm(snakeCoords):
+def snakeSquirm(snakeCoords, colour, colour_dark):
     c = 0
     for segment in snakeCoords:
         if c %2 == 0:
             snakeBodySeg = pygame.Rect(segment[X]*CELL_SIZE, segment[Y]*CELL_SIZE, CELL_SIZE, CELL_SIZE)
-            pygame.draw.rect(DISPLAY_SURF, GREEN, snakeBodySeg)
+            pygame.draw.rect(DISPLAY_SURF, colour, snakeBodySeg)
             snakeBodySeg = pygame.Rect(segment[X]*CELL_SIZE+2, segment[Y]*CELL_SIZE+2, CELL_SIZE-4, CELL_SIZE-4)
-            pygame.draw.rect(DISPLAY_SURF, DARKGREEN, snakeBodySeg)
+            pygame.draw.rect(DISPLAY_SURF, colour_dark, snakeBodySeg)
         else:
             snakeBodySeg = pygame.Rect(segment[X]*CELL_SIZE+2, segment[Y]*CELL_SIZE+2, CELL_SIZE-4, CELL_SIZE-4)
-            pygame.draw.rect(DISPLAY_SURF, GREEN, snakeBodySeg)
+            pygame.draw.rect(DISPLAY_SURF, colour, snakeBodySeg)
             snakeBodySeg = pygame.Rect(segment[X]*CELL_SIZE+4, segment[Y]*CELL_SIZE+4, CELL_SIZE-8, CELL_SIZE-8)
-            pygame.draw.rect(DISPLAY_SURF, DARKGREEN, snakeBodySeg)
+            pygame.draw.rect(DISPLAY_SURF, colour_dark, snakeBodySeg)
         c += 1
 
 def runGame():
@@ -165,6 +166,11 @@ def runGame():
     direction = random.choice([RIGHT, LEFT, UP, DOWN])
     apple = getRandomLocation(snakeCoords)
     score = 0
+    rot = 0
+    count = 0
+    speedge = 10
+    rand_colour = GREEN
+    rand_colour_dark = DARKGREEN
     
     # Event handling loop
     while True: 
@@ -207,8 +213,22 @@ def runGame():
         #       What is it colliding with ?
         if snakeCoords[HEAD] == apple:
             apple = getRandomLocation(snakeCoords)
-            snakeCoords.insert(0,newHead)
-            score += 1
+            rand_colour = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
+            rand_colour_dark = (random.randint(0, 155), random.randint(0, 155), random.randint(0, 155)) 
+            if rot < 12:
+                snakeCoords.insert(0,newHead)
+                score += 1
+                speedge += 1
+            elif rot > 11  and len(snakeCoords) > 1:
+                for i in range(len(snakeCoords)):
+                    if i < len(snakeCoords):
+                        snakeCoords.pop()
+                        score -= 1
+                        speedge -= 1
+                    else:
+                        continue
+
+            rot = 0
             
         for body in range(len(snakeCoords)):
             if snakeCoords[HEAD] == snakeCoords[body] and body > 1:
@@ -216,18 +236,25 @@ def runGame():
             elif snakeCoords[body][0] > CELL_WIDTH-1 or snakeCoords[body][1] > CELL_HEIGHT-1 or snakeCoords[body][0] < 0 or snakeCoords[body][1] < 0:
                 showGameOverScreen()
         
+        if count%round((speedge/2), 0) == 0 and len(snakeCoords) > 1:
+            rot += 1
+        if rot > 22:
+            rot = 22.5
+        
+        
         ## ~~~~~End of Logic Section~~~ ##
         
         
         ## Draw stuff then update screen
         
         drawGrid()
-        snakeSquirm(snakeCoords)
-        drawApple(apple)
+        snakeSquirm(snakeCoords, rand_colour, rand_colour_dark)
+        drawApple(apple,rot)
         drawScore(score)
+        count += 1
         
         pygame.display.update()
-        FPS_CLOCK.tick(FPS)
+        FPS_CLOCK.tick(speedge)
 
 
 
