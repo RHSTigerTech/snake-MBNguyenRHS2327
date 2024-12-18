@@ -11,9 +11,9 @@ from pygame.locals import *
 # Global variables are used in this program.
 # The justification is that all of these global variables are actually CONSTANTS
 # so thier values should never change (preventing that difficult to trace bug)
-WINDOW_WIDTH = 600
-WINDOW_HEIGHT = 400
-CELL_SIZE = 20
+WINDOW_WIDTH = 1200
+WINDOW_HEIGHT = 800
+CELL_SIZE = 40
 assert WINDOW_WIDTH % CELL_SIZE == 0,  "cell size must divide WINDOW_WIDTH"
 assert WINDOW_HEIGHT % CELL_SIZE == 0,  "cell size must divide WINDOW_HEIGHT"
 
@@ -43,10 +43,9 @@ def main():
     DISPLAY_SURF = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     BASIC_FONT = pygame.font.Font('freesansbold.ttf', 18)
     pygame.display.set_caption("sNaKe_ClOnE")
-    showStartScreen()  # Not yet defined
+    zenmode = showStartScreen()  # Not yet defined
     while True:
-        runGame()  # Needs work
-        showGameOverScreen()  # Needs work
+        runGame(zenmode)  # Needs work
 
 
 def showStartScreen():
@@ -66,7 +65,9 @@ def showStartScreen():
             elif event.type == KEYDOWN: 
                 if event.key == K_ESCAPE:  
                     terminate()
-                return
+                elif event.key == K_z:
+                    return True
+                return False
 
  
 #done needs 
@@ -122,8 +123,10 @@ def showGameOverScreen():
             elif event.type == KEYDOWN: 
                 if event.key == K_ESCAPE:  
                     terminate()
+                elif event.key == K_z:
+                    runGame(True)
                 else:
-                    runGame()
+                    runGame(False)
 
 
 def drawScore(score):
@@ -147,22 +150,31 @@ def getRandomLocation(snakeCoords):
 def snakeSquirm(snakeCoords, colour, colour_dark):
     c = 0
     for segment in snakeCoords:
-        if c %2 == 0:
+        if c %2 == 0 and segment != snakeCoords[HEAD]:
             snakeBodySeg = pygame.Rect(segment[X]*CELL_SIZE, segment[Y]*CELL_SIZE, CELL_SIZE, CELL_SIZE)
             pygame.draw.rect(DISPLAY_SURF, colour, snakeBodySeg)
-            snakeBodySeg = pygame.Rect(segment[X]*CELL_SIZE+2, segment[Y]*CELL_SIZE+2, CELL_SIZE-4, CELL_SIZE-4)
+            snakeBodySeg = pygame.Rect(segment[X]*CELL_SIZE+(CELL_SIZE/10), segment[Y]*CELL_SIZE+(CELL_SIZE/10), CELL_SIZE-(CELL_SIZE/5), CELL_SIZE-(CELL_SIZE/5))
             pygame.draw.rect(DISPLAY_SURF, colour_dark, snakeBodySeg)
-        else:
-            snakeBodySeg = pygame.Rect(segment[X]*CELL_SIZE+2, segment[Y]*CELL_SIZE+2, CELL_SIZE-4, CELL_SIZE-4)
+
+        elif segment == snakeCoords[HEAD]:
+            snakeBodySeg = pygame.Rect(segment[X]*CELL_SIZE, segment[Y]*CELL_SIZE, CELL_SIZE, CELL_SIZE)
             pygame.draw.rect(DISPLAY_SURF, colour, snakeBodySeg)
-            snakeBodySeg = pygame.Rect(segment[X]*CELL_SIZE+4, segment[Y]*CELL_SIZE+4, CELL_SIZE-8, CELL_SIZE-8)
+            snakeBodySeg = pygame.Rect(segment[X]*CELL_SIZE+(CELL_SIZE/10), segment[Y]*CELL_SIZE+(CELL_SIZE/10), CELL_SIZE-(CELL_SIZE/5), CELL_SIZE-(CELL_SIZE/5))
+            pygame.draw.rect(DISPLAY_SURF, WHITE, snakeBodySeg)
+
+        else:
+            snakeBodySeg = pygame.Rect(segment[X]*CELL_SIZE+(CELL_SIZE/10), segment[Y]*CELL_SIZE+(CELL_SIZE/10), CELL_SIZE-(CELL_SIZE/5), CELL_SIZE-(CELL_SIZE/5))
+            pygame.draw.rect(DISPLAY_SURF, colour, snakeBodySeg)
+            snakeBodySeg = pygame.Rect(segment[X]*CELL_SIZE+(CELL_SIZE/5), segment[Y]*CELL_SIZE+(CELL_SIZE/5), CELL_SIZE-(CELL_SIZE/2.5), CELL_SIZE-(CELL_SIZE/2.5))
             pygame.draw.rect(DISPLAY_SURF, colour_dark, snakeBodySeg)
         c += 1
 
-def runGame():
+def runGame(zenmode):
+    if zenmode == True:
+        print("welcome to zen mode")
     startX = CELL_WIDTH // 2
     startY = CELL_HEIGHT // 2
-    snakeCoords = [(startX, startY)]
+    snakeCoords = [[startX, startY]]
     direction = random.choice([RIGHT, LEFT, UP, DOWN])
     apple = getRandomLocation(snakeCoords)
     score = 0
@@ -199,26 +211,27 @@ def runGame():
         # Move the snake (add a new head and remove the tail)
         
         if direction == RIGHT:
-            newHead = (snakeCoords[HEAD][X]+1, snakeCoords[HEAD][Y])
+            newHead = [snakeCoords[HEAD][X]+1, snakeCoords[HEAD][Y]]
         elif direction == LEFT:
-            newHead = (snakeCoords[HEAD][X]-1, snakeCoords[HEAD][Y])
+            newHead = [snakeCoords[HEAD][X]-1, snakeCoords[HEAD][Y]]
         elif direction == DOWN:
-            newHead = (snakeCoords[HEAD][X], snakeCoords[HEAD][Y]+1)
+            newHead = [snakeCoords[HEAD][X], snakeCoords[HEAD][Y]+1]
         elif direction == UP:
-            newHead = (snakeCoords[HEAD][X], snakeCoords[HEAD][Y]-1)
+            newHead = [snakeCoords[HEAD][X], snakeCoords[HEAD][Y]-1]
         
         snakeCoords.insert(0,newHead)
         snakeCoords.pop()
         # Check for collision If the snake collides what should it do
         #       What is it colliding with ?
-        if snakeCoords[HEAD] == apple:
+        if (snakeCoords[HEAD][X], snakeCoords[HEAD][Y]) == apple:
             apple = getRandomLocation(snakeCoords)
             rand_colour = (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255))
             rand_colour_dark = (random.randint(0, 155), random.randint(0, 155), random.randint(0, 155)) 
             if rot < 12:
                 snakeCoords.insert(0,newHead)
                 score += 1
-                speedge += 1
+                if zenmode == False:
+                    speedge += 1
             elif rot > 11  and len(snakeCoords) > 1:
                 for i in range(len(snakeCoords)):
                     if i < len(snakeCoords):
@@ -231,15 +244,24 @@ def runGame():
             rot = 0
             
         for body in range(len(snakeCoords)):
-            if snakeCoords[HEAD] == snakeCoords[body] and body > 1:
+            if snakeCoords[body][X] > CELL_WIDTH-1 and zenmode == True:
+                snakeCoords[body][X] = 0
+            elif snakeCoords[body][X] < 0 and zenmode == True:
+                snakeCoords[body][X] = CELL_WIDTH-1
+            elif snakeCoords[body][Y] > CELL_HEIGHT-1 and zenmode == True:
+                snakeCoords[body][Y] = 0
+            elif snakeCoords[body][Y] < 0 and zenmode == True:
+                snakeCoords[body][Y] = CELL_HEIGHT-1
+            if snakeCoords[HEAD] == snakeCoords[body] and body > 1 and zenmode == False:
                 showGameOverScreen()
-            elif snakeCoords[body][0] > CELL_WIDTH-1 or snakeCoords[body][1] > CELL_HEIGHT-1 or snakeCoords[body][0] < 0 or snakeCoords[body][1] < 0:
+            elif snakeCoords[body][X] > CELL_WIDTH-1 or snakeCoords[body][Y] > CELL_HEIGHT-1 or snakeCoords[body][X] < 0 or snakeCoords[body][Y] < 0 and zenmode == False:
                 showGameOverScreen()
         
-        if count%round((speedge/2), 0) == 0 and len(snakeCoords) > 1:
+        if count%round((speedge/2), 0) == 0 and len(snakeCoords) > 1 and CELL_SIZE > 5 and zenmode == False:
             rot += 1
         if rot > 22:
             rot = 22.5
+        
         
         
         ## ~~~~~End of Logic Section~~~ ##
